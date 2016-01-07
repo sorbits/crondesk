@@ -26,6 +26,13 @@ This will build the `crondesk` executable, place it in `~/bin`, and run `crondes
 
 You can run `~/bin/crondesk uninstall` to stop the tool and remove the launch agent.
 
+## Homebrew
+
+To install via homebrew run:
+
+	brew tap sorbits/tools
+	brew install crondesk
+
 # Format of `~/.crondisk`
 
 Commands are read from `~/.crondisk` which is in Apple’s property list format.
