@@ -336,7 +336,7 @@ class AppDelegate: NSObject {
 	var eventSource: dispatch_source_t?
 	var timer: NSTimer?
 
-	let retainedSources: [dispatch_source_t] = [ SIGINT, SIGTERM ].map {
+	var retainedSources: [dispatch_source_t] = [ SIGINT, SIGTERM ].map {
 		signal($0, SIG_IGN)
 
 		let source = dispatch_source_create(DISPATCH_SOURCE_TYPE_SIGNAL, UInt($0), 0, dispatch_get_main_queue())
@@ -365,6 +365,17 @@ class AppDelegate: NSObject {
 		NSNotificationCenter.defaultCenter().addObserver(self, selector: "applicationDidChangeScreenParameters:",       name: NSApplicationDidChangeScreenParametersNotification, object: NSApplication.sharedApplication())
 		NSWorkspace.sharedWorkspace().notificationCenter.addObserver(self, selector: "workspaceWillSleepNotification:", name: NSWorkspaceWillSleepNotification,                   object: NSWorkspace.sharedWorkspace())
 		NSWorkspace.sharedWorkspace().notificationCenter.addObserver(self, selector: "workspaceDidWakeNotification:",   name: NSWorkspaceDidWakeNotification,                     object: NSWorkspace.sharedWorkspace())
+
+		signal(SIGUSR1, SIG_IGN)
+		let source = dispatch_source_create(DISPATCH_SOURCE_TYPE_SIGNAL, UInt(SIGUSR1), 0, dispatch_get_main_queue())
+		dispatch_source_set_event_handler(source) {
+			self.records.forEach {
+				log("Run \($0.command.command), last launched at \(pretty($0.terminatedAtDate))")
+				$0.launch()
+			}
+		}
+		dispatch_resume(source)
+		retainedSources.append(source)
 
 		tick()
 	}
