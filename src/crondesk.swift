@@ -214,7 +214,7 @@ class OutputWindowController: NSWindowController {
 		let win = NSWindow(contentRect: frame, styleMask: NSBorderlessWindowMask, backing: .Buffered, `defer`: false)
 		win.opaque             = false
 		win.level              = Int(CGWindowLevelForKey(.DesktopWindowLevelKey))
-		win.backgroundColor    = NSColor.clearColor()
+		win.backgroundColor    = .clearColor()
 		win.collectionBehavior = [ .Stationary, .CanJoinAllSpaces ]
 		win.contentView        = view
 
@@ -260,8 +260,8 @@ class Record {
 		}
 	}
 
-	var launchedAtDate: NSDate = NSDate.distantPast()
-	var terminatedAtDate: NSDate = NSDate.distantPast()
+	var launchedAtDate   = NSDate.distantPast()
+	var terminatedAtDate = NSDate.distantPast()
 
 	let launchInterval: NSTimeInterval
 	let timeoutInterval: NSTimeInterval
@@ -314,7 +314,7 @@ class Record {
 			}
 
 			if(terminationCode != 0) {
-				log("Exit code \(terminationCode) from \(self.command.command)\n\((stderr.isEmpty ? stdout : stderr).stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet()))", level: .Error)
+				log("Exit code \(terminationCode) from \(self.command.command)\n\((stderr.isEmpty ? stdout : stderr).stringByTrimmingCharactersInSet(.whitespaceAndNewlineCharacterSet()))", level: .Error)
 			}
 
 			self.terminatedAtDate = NSDate()
