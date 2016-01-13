@@ -256,7 +256,7 @@ class Record {
 
 	var outputStatus: OutputStatus = .None {
 		didSet {
-			output.view.textColor = outputStatus == .Normal ? NSColor.whiteColor() : NSColor(calibratedWhite: 1, alpha: 0.5)
+			output.view.textColor = NSColor.whiteColor().colorWithAlphaComponent(outputStatus == .Normal ? 1 : 0.5)
 		}
 	}
 
