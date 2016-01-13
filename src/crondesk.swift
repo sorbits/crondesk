@@ -392,7 +392,7 @@ class AppDelegate: NSObject {
 		}
 
 		let candidates = records.flatMap { $0.timeoutDate ?? $0.nextLaunchDate }
-		let nextDate = candidates.minElement { $0.timeIntervalSinceNow < $1.timeIntervalSinceNow }!
+		let nextDate = candidates.minElement { $0.compare($1) == .OrderedAscending }!
 
 		timer?.invalidate()
 		timer = NSTimer.scheduledTimerWithTimeInterval(nextDate.timeIntervalSinceNow, target: self, selector: "timerDidFire:", userInfo: nil, repeats: false)
