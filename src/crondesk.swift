@@ -361,10 +361,10 @@ class AppDelegate: NSObject {
 		observeConfig(commandsURL)
 		loadCommands(commandsURL, cache: cache)
 
-		NSNotificationCenter.defaultCenter().addObserver(self, selector: "applicationWillTerminate:",                   name: NSApplicationWillTerminateNotification,             object: NSApplication.sharedApplication())
-		NSNotificationCenter.defaultCenter().addObserver(self, selector: "applicationDidChangeScreenParameters:",       name: NSApplicationDidChangeScreenParametersNotification, object: NSApplication.sharedApplication())
-		NSWorkspace.sharedWorkspace().notificationCenter.addObserver(self, selector: "workspaceWillSleepNotification:", name: NSWorkspaceWillSleepNotification,                   object: NSWorkspace.sharedWorkspace())
-		NSWorkspace.sharedWorkspace().notificationCenter.addObserver(self, selector: "workspaceDidWakeNotification:",   name: NSWorkspaceDidWakeNotification,                     object: NSWorkspace.sharedWorkspace())
+		NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(applicationWillTerminate),                   name: NSApplicationWillTerminateNotification,             object: NSApplication.sharedApplication())
+		NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(applicationDidChangeScreenParameters),       name: NSApplicationDidChangeScreenParametersNotification, object: NSApplication.sharedApplication())
+		NSWorkspace.sharedWorkspace().notificationCenter.addObserver(self, selector: #selector(workspaceWillSleepNotification), name: NSWorkspaceWillSleepNotification,                   object: NSWorkspace.sharedWorkspace())
+		NSWorkspace.sharedWorkspace().notificationCenter.addObserver(self, selector: #selector(workspaceDidWakeNotification),   name: NSWorkspaceDidWakeNotification,                     object: NSWorkspace.sharedWorkspace())
 
 		signal(SIGUSR1, SIG_IGN)
 		let source = dispatch_source_create(DISPATCH_SOURCE_TYPE_SIGNAL, UInt(SIGUSR1), 0, dispatch_get_main_queue())
@@ -395,7 +395,7 @@ class AppDelegate: NSObject {
 		let nextDate = candidates.minElement { $0.compare($1) == .OrderedAscending }!
 
 		timer?.invalidate()
-		timer = NSTimer.scheduledTimerWithTimeInterval(nextDate.timeIntervalSinceNow, target: self, selector: "timerDidFire:", userInfo: nil, repeats: false)
+		timer = NSTimer.scheduledTimerWithTimeInterval(nextDate.timeIntervalSinceNow, target: self, selector: #selector(timerDidFire), userInfo: nil, repeats: false)
 	}
 
 	func timerDidFire(timer: NSTimer) {
