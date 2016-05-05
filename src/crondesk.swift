@@ -211,7 +211,7 @@ class OutputWindowController: NSWindowController {
 	init(frame: CGRect) {
 		view = OutputView(frame: frame)
 
-		let win = NSWindow(contentRect: frame, styleMask: NSBorderlessWindowMask, backing: .Buffered, `defer`: false)
+		let win = NSWindow(contentRect: frame, styleMask: NSBorderlessWindowMask, backing: .Buffered, defer: false)
 		win.opaque             = false
 		win.level              = Int(CGWindowLevelForKey(.DesktopWindowLevelKey))
 		win.backgroundColor    = .clearColor()
