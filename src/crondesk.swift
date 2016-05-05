@@ -505,7 +505,9 @@ class AppDelegate: NSObject {
 				}
 
 				let (j, distance) = tmp.minElement { t0, t1 in t0.1 < t1.1 }!
-				return (index++, j, distance)
+				let i = index
+				index += 1
+				return (i, j, distance)
 			}
 
 			let (i, j, _) = distances.minElement { t0, t1 in t0.2 < t1.2 }!
