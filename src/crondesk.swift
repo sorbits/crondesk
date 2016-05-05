@@ -336,13 +336,16 @@ class AppDelegate: NSObject {
 	var eventSource: dispatch_source_t?
 	var timer: NSTimer?
 
-	var retainedSources: [dispatch_source_t] = [ SIGINT, SIGTERM ].map {
-		signal($0, SIG_IGN)
+	var retainedSources: [dispatch_source_t] = []
 
-		let source = dispatch_source_create(DISPATCH_SOURCE_TYPE_SIGNAL, UInt($0), 0, dispatch_get_main_queue())
-		dispatch_source_set_event_handler(source) { NSApplication.sharedApplication().terminate(nil) }
+	func handleSignal(s: CInt, callback: dispatch_block_t) {
+		signal(s, SIG_IGN)
+
+		let source = dispatch_source_create(DISPATCH_SOURCE_TYPE_SIGNAL, UInt(s), 0, dispatch_get_main_queue())
+		retainedSources.append(source)
+
+		dispatch_source_set_event_handler(source, callback)
 		dispatch_resume(source)
-		return source
 	}
 
 	init(commandsURL: NSURL, cacheURL: NSURL) {
@@ -350,6 +353,17 @@ class AppDelegate: NSObject {
 
 		self.cacheURL = cacheURL
 		super.init()
+
+		for signal in [ SIGINT, SIGTERM ] {
+			handleSignal(signal) { NSApplication.sharedApplication().terminate(nil) }
+		}
+
+		handleSignal(SIGUSR1) {
+			self.records.forEach {
+				log("Run \($0.command.command), last launched at \(pretty($0.terminatedAtDate))")
+				$0.launch()
+			}
+		}
 
 		var cache: [String: String] = [:]
 		if let plist = NSDictionary(contentsOfURL: cacheURL) {
@@ -365,17 +379,6 @@ class AppDelegate: NSObject {
 		NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(applicationDidChangeScreenParameters),       name: NSApplicationDidChangeScreenParametersNotification, object: NSApplication.sharedApplication())
 		NSWorkspace.sharedWorkspace().notificationCenter.addObserver(self, selector: #selector(workspaceWillSleepNotification), name: NSWorkspaceWillSleepNotification,                   object: NSWorkspace.sharedWorkspace())
 		NSWorkspace.sharedWorkspace().notificationCenter.addObserver(self, selector: #selector(workspaceDidWakeNotification),   name: NSWorkspaceDidWakeNotification,                     object: NSWorkspace.sharedWorkspace())
-
-		signal(SIGUSR1, SIG_IGN)
-		let source = dispatch_source_create(DISPATCH_SOURCE_TYPE_SIGNAL, UInt(SIGUSR1), 0, dispatch_get_main_queue())
-		dispatch_source_set_event_handler(source) {
-			self.records.forEach {
-				log("Run \($0.command.command), last launched at \(pretty($0.terminatedAtDate))")
-				$0.launch()
-			}
-		}
-		dispatch_resume(source)
-		retainedSources.append(source)
 
 		tick()
 	}
