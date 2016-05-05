@@ -66,9 +66,9 @@ extension option {
 
 func getopt_long(argc: CInt, _ argv: UnsafePointer<UnsafeMutablePointer<CChar>>, _ longopts: [option], f: (String, String?) throws -> Void) rethrows {
 	var map: [CInt: String] = [:]
-	longopts.filter { $0.val != 0 }.forEach {
-		if let flag = String.fromCString($0.name) {
-			map[$0.val] = flag
+	for opt in longopts where opt.val != 0 {
+		if let flag = String.fromCString(opt.name) {
+			map[opt.val] = flag
 		}
 	}
 
