@@ -79,7 +79,7 @@ func getopt_long(_ argc: CInt, _ argv: UnsafePointer<UnsafeMutablePointer<Int8>?
 
 	var i: CInt = 0
 	while let ch = nilOnPOSIXFail(getopt_long(argc, argv, shortopts, longopts, &i)) {
-		try f((ch == 0 ? String(cString: longopts[Int(i)].name) : map[ch]) ?? "?", String(cString: optarg))
+		try f((ch == 0 ? String(cString: longopts[Int(i)].name) : map[ch]) ?? "?", optarg != nil ? String(cString: optarg) : nil)
 	}
 }
 
