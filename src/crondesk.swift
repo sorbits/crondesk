@@ -166,18 +166,18 @@ class OutputView: NSView {
 
 	override func draw(_ dirtyRect: NSRect) {
 		NSColor.clear.set()
-		NSRectFill(dirtyRect)
+		dirtyRect.fill()
 
 		if(OutputView.drawBorder) {
 			NSColor.white.set()
-			NSRectFill(self.visibleRect)
+			self.visibleRect.fill()
 			NSColor.clear.set()
-			NSRectFill(NSInsetRect(self.visibleRect, 1, 1))
+			NSInsetRect(self.visibleRect, 1, 1).fill()
 		}
 
-		let attrs: [String: AnyObject] = [
-			NSFontAttributeName:            textFont,
-			NSForegroundColorAttributeName: textColor,
+		let attrs: [NSAttributedStringKey: AnyObject] = [
+			.font:            textFont,
+			.foregroundColor: textColor,
 		]
 
 		let str = NSMutableAttributedString(string: stringValue, attributes: attrs);
@@ -186,7 +186,7 @@ class OutputView: NSView {
 		let paragraphStyle = CTParagraphStyleCreate(settings, 1)
 		CFAttributedStringSetAttribute(str, CFRangeMake(0, CFAttributedStringGetLength(str)), kCTParagraphStyleAttributeName, paragraphStyle)
 
-		guard let context = NSGraphicsContext.current()?.cgContext else {
+		guard let context = NSGraphicsContext.current?.cgContext else {
 			return
 		}
 
@@ -211,9 +211,9 @@ class OutputWindowController: NSWindowController {
 	init(frame: CGRect) {
 		view = OutputView(frame: frame)
 
-		let win = NSWindow(contentRect: frame, styleMask: NSBorderlessWindowMask, backing: .buffered, defer: false)
+		let win = NSWindow(contentRect: frame, styleMask: .borderless, backing: .buffered, defer: false)
 		win.isOpaque           = false
-		win.level              = Int(CGWindowLevelForKey(.desktopWindow))
+		win.level              = NSWindow.Level(Int(CGWindowLevelForKey(.desktopWindow)))
 		win.backgroundColor    = .clear
 		win.collectionBehavior = [ .stationary, .canJoinAllSpaces ]
 		win.contentView        = view
@@ -293,7 +293,14 @@ class Record {
 			self.textFont = font
 		} else {
 			let systemFont = NSFont.systemFont(ofSize: fontSize)
-			let descriptor = systemFont.fontDescriptor.addingAttributes([ NSFontFeatureSettingsAttribute: [ [ NSFontFeatureTypeIdentifierKey: kNumberSpacingType, NSFontFeatureSelectorIdentifierKey: kMonospacedNumbersSelector ] ] ])
+			let descriptor = systemFont.fontDescriptor.addingAttributes([
+				.featureSettings: [
+					[
+						NSFontDescriptor.FeatureKey.typeIdentifier: kNumberSpacingType,
+						NSFontDescriptor.FeatureKey.selectorIdentifier: kMonospacedNumbersSelector
+					]
+				]
+			])
 			self.textFont = NSFont(descriptor: descriptor, size: fontSize) ?? systemFont
 		}
 
@@ -355,7 +362,7 @@ class AppDelegate: NSObject {
 		super.init()
 
 		for signal in [ SIGINT, SIGTERM ] {
-			handleSignal(signal) { NSApplication.shared().terminate(nil) }
+			handleSignal(signal) { NSApplication.shared.terminate(nil) }
 		}
 
 		handleSignal(SIGUSR1) {
@@ -375,10 +382,10 @@ class AppDelegate: NSObject {
 		observeConfig(commandsURL)
 		loadCommands(commandsURL, cache: cache)
 
-		NotificationCenter.default.addObserver(self, selector: #selector(applicationWillTerminate),                    name: NSNotification.Name.NSApplicationWillTerminate,             object: NSApplication.shared())
-		NotificationCenter.default.addObserver(self, selector: #selector(applicationDidChangeScreenParameters),        name: NSNotification.Name.NSApplicationDidChangeScreenParameters, object: NSApplication.shared())
-		NSWorkspace.shared().notificationCenter.addObserver(self, selector: #selector(workspaceWillSleepNotification), name: NSNotification.Name.NSWorkspaceWillSleep,                   object: NSWorkspace.shared())
-		NSWorkspace.shared().notificationCenter.addObserver(self, selector: #selector(workspaceDidWakeNotification),   name: NSNotification.Name.NSWorkspaceDidWake,                     object: NSWorkspace.shared())
+		NotificationCenter.default.addObserver(self, selector: #selector(applicationWillTerminate),                  name: NSApplication.willTerminateNotification,             object: NSApplication.shared)
+		NotificationCenter.default.addObserver(self, selector: #selector(applicationDidChangeScreenParameters),      name: NSApplication.didChangeScreenParametersNotification, object: NSApplication.shared)
+		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(workspaceWillSleepNotification), name: NSWorkspace.willSleepNotification,                   object: NSWorkspace.shared)
+		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(workspaceDidWakeNotification),   name: NSWorkspace.didWakeNotification,                     object: NSWorkspace.shared)
 
 		tick()
 	}
@@ -401,7 +408,7 @@ class AppDelegate: NSObject {
 		timer = Timer.scheduledTimer(timeInterval: nextDate.timeIntervalSinceNow, target: self, selector: #selector(timerDidFire), userInfo: nil, repeats: false)
 	}
 
-	func timerDidFire(_ timer: Timer) {
+	@objc func timerDidFire(_ timer: Timer) {
 		tick()
 	}
 
@@ -425,7 +432,7 @@ class AppDelegate: NSObject {
 		if let frameStr = dict["screen"]?["frame"] as? String {
 			screenFrame = NSRectFromString(frameStr)
 		} else {
-			screenFrame = NSScreen.main()?.frame ?? CGRect(x: 0, y: 0, width: 2560, height: 1440)
+			screenFrame = NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 2560, height: 1440)
 		}
 
 		records = array.flatMap {
@@ -484,7 +491,7 @@ class AppDelegate: NSObject {
 			{ CGPoint(x: NSMaxX($0), y: NSMinY($0)) }
 		]
 
-		guard let newFrame = NSScreen.main()?.frame else {
+		guard let newFrame = NSScreen.main?.frame else {
 			return
 		}
 
@@ -567,7 +574,7 @@ class AppDelegate: NSObject {
 		return cache
 	}
 
-	func applicationWillTerminate(_ notification: Notification) {
+	@objc func applicationWillTerminate(_ notification: Notification) {
 		log("### Will Terminate ### ")
 
 		do {
@@ -579,17 +586,17 @@ class AppDelegate: NSObject {
 		}
 	}
 
-	func applicationDidChangeScreenParameters(_ notification: Notification) {
+	@objc func applicationDidChangeScreenParameters(_ notification: Notification) {
 		log("### New Screen Size ###")
 		updateFrames()
 	}
 
-	func workspaceWillSleepNotification(_ notification: Notification) {
+	@objc func workspaceWillSleepNotification(_ notification: Notification) {
 		log("### Will Sleep ###")
 		records.forEach { $0.terminate() }
 	}
 
-	func workspaceDidWakeNotification(_ notification: Notification) {
+	@objc func workspaceDidWakeNotification(_ notification: Notification) {
 		log("### Did Wake ###")
 		records.filter { $0.needsToLaunch }.forEach { $0.outputStatus = .outdated }
 		tick()
@@ -720,13 +727,13 @@ class CLI {
 	}
 
 	func launch() {
-		let app = NSApplication.shared()
+		let app = NSApplication.shared
 		let _ = AppDelegate(commandsURL: commandsURL, cacheURL: cachedResultsURL)
 		app.run()
 	}
 
 	func createConfig(_ url: URL, overwrite: Bool = false) throws {
-		guard let scr = NSScreen.main() else {
+		guard let scr = NSScreen.main else {
 			throw MyError.internalError(reason: "Main screen missing.", systemExit: EX_UNAVAILABLE)
 		}
 
