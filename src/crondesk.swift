@@ -175,7 +175,7 @@ class OutputView: NSView {
 			NSInsetRect(self.visibleRect, 1, 1).fill()
 		}
 
-		let attrs: [NSAttributedStringKey: AnyObject] = [
+		let attrs: [NSAttributedString.Key: AnyObject] = [
 			.font:            textFont,
 			.foregroundColor: textColor,
 		]
@@ -401,7 +401,7 @@ class AppDelegate: NSObject {
 			$0.launch()
 		}
 
-		let candidates = records.flatMap { $0.timeoutDate ?? $0.nextLaunchDate }
+		let candidates = records.compactMap { $0.timeoutDate ?? $0.nextLaunchDate }
 		let nextDate = candidates.min { $0.compare($1) == .orderedAscending }!
 
 		timer?.invalidate()
@@ -435,7 +435,7 @@ class AppDelegate: NSObject {
 			screenFrame = NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 2560, height: 1440)
 		}
 
-		records = array.flatMap {
+		records = array.compactMap {
 			plist in
 
 			if plist["disabled"]?.boolValue ?? false {
@@ -511,7 +511,7 @@ class AppDelegate: NSObject {
 
 				let framePoints = corners.map { fn in fn(record.frame) }
 				let tmp: [(Int, CGFloat)] = (0..<4).map {
-					($0, info[$0].points.flatMap { p0 in framePoints.map { p1 in distance(p0, p1) } }.min()!)
+					($0, info[$0].points.compactMap { p0 in framePoints.map { p1 in distance(p0, p1) } }.flatMap { $0 }.min()!)
 				}
 
 				let (j, k) = tmp.min { t0, t1 in t0.1 < t1.1 }!
