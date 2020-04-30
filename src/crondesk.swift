@@ -182,7 +182,9 @@ class OutputView: NSView {
 
 		let str = NSMutableAttributedString(string: stringValue, attributes: attrs);
 
-		let settings       = [ CTParagraphStyleSetting(spec: .alignment, valueSize: MemoryLayout.size(ofValue:alignment), value: &alignment) ]
+		let settings = withUnsafeBytes(of: alignment) { alignmentBytes in
+			[ CTParagraphStyleSetting(spec: .alignment, valueSize: MemoryLayout.size(ofValue:alignment), value: alignmentBytes.baseAddress!) ]
+		}
 		let paragraphStyle = CTParagraphStyleCreate(settings, 1)
 		CFAttributedStringSetAttribute(str, CFRangeMake(0, CFAttributedStringGetLength(str)), kCTParagraphStyleAttributeName, paragraphStyle)
 
