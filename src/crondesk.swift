@@ -3,8 +3,8 @@ import AppKit
 
 let appName       = "crondesk"
 let appIdentifier = "com.macromates.\(appName)"
-let appVersion    = "1.0"
-let appDate       = "2016-01-06"
+let appVersion    = "1.0.1"
+let appDate       = "2020-04-30"
 
 // This wrapper allows us to use POSIX functions in while and guard conditions.
 func nilOnPOSIXFail(_ returnCode: CInt) -> CInt? {
