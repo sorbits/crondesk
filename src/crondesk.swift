@@ -1,10 +1,11 @@
 import Foundation
 import AppKit
+import os.log
 
 let appName       = "crondesk"
 let appIdentifier = "com.macromates.\(appName)"
-let appVersion    = "1.0.1"
-let appDate       = "2020-04-30"
+let appVersion    = "1.0.2"
+let appDate       = "2020-05-04"
 
 // This wrapper allows us to use POSIX functions in while and guard conditions.
 func nilOnPOSIXFail(_ returnCode: CInt) -> CInt? {
@@ -12,25 +13,6 @@ func nilOnPOSIXFail(_ returnCode: CInt) -> CInt? {
 }
 
 // ======================================
-
-enum LogLevel: Int {
-	case error = 0
-	case warning
-	case notice
-
-	static var currentLevel: LogLevel = .warning
-}
-
-func log(_ message: String, level: LogLevel = .notice) {
-	if level.rawValue > LogLevel.currentLevel.rawValue {
-		return
-	}
-
-	let stderr = FileHandle.standardError
-	if let data = "\(pretty(Date())): \(message)\n".data(using: .utf8) {
-		stderr.write(data)
-	}
-}
 
 func pretty(_ date: Date) -> String {
 	if date == Date.distantPast {
@@ -141,14 +123,14 @@ class Command {
 		}
 
 		task.terminate()
-		log("Sent SIGTERM to \(command)", level: .warning)
+		os_log("Sent SIGTERM to %{public}s", command)
 
 		let delayTime = DispatchTime.now() + Double(2 * Int64(NSEC_PER_SEC)) / Double(NSEC_PER_SEC)
 		DispatchQueue.global().asyncAfter(deadline: delayTime) {
 			if kill(task.processIdentifier, SIGKILL) == 0 {
-				log("Sent SIGKILL to \(self.command)", level: .warning)
+				os_log("Sent SIGKILL to %{public}s", self.command)
 			} else if errno != ESRCH {
-				log("Error sending SIGKILL to process \(task.processIdentifier): \(String(cString: strerror(errno))).", level: .error)
+				os_log("Error sending SIGKILL to process %{public}s: %{public}s.", type: .error, task.processIdentifier, String(cString: strerror(errno)))
 			}
 		}
 
@@ -323,7 +305,8 @@ class Record {
 			}
 
 			if(terminationCode != 0) {
-				log("Exit code \(terminationCode) from \(self.command.command)\n\((stderr.isEmpty ? stdout : stderr).trimmingCharacters(in: .whitespacesAndNewlines))", level: .error)
+				let output = (stderr.isEmpty ? stdout : stderr).trimmingCharacters(in: .whitespacesAndNewlines)
+				os_log("Exit code %d from %{public}s\n%{public}s", type: .error, terminationCode, self.command.command, output)
 			}
 
 			self.terminatedAtDate = Date()
@@ -358,7 +341,7 @@ class AppDelegate: NSObject {
 	}
 
 	init(commandsURL: URL, cacheURL: URL) {
-		log("### Did Launch ###")
+		os_log("### Did Launch ###", type: .info)
 
 		self.cacheURL = cacheURL
 		super.init()
@@ -369,7 +352,7 @@ class AppDelegate: NSObject {
 
 		handleSignal(SIGUSR1) {
 			self.records.forEach {
-				log("Run \($0.command.command), last launched at \(pretty($0.terminatedAtDate))")
+				os_log("Run %{public}s, last launched at %{public}s", type: .info, $0.command.command, pretty($0.terminatedAtDate))
 				$0.launch()
 			}
 		}
@@ -394,12 +377,12 @@ class AppDelegate: NSObject {
 
 	func tick() {
 		records.filter { $0.needsToTerminate }.forEach {
-			log("Timeout reached for \($0.command.command)", level: .warning)
+			os_log("Timeout reached for %{public}s", $0.command.command)
 			$0.terminate()
 		}
 
 		records.filter { $0.needsToLaunch }.forEach {
-			log("Run \($0.command.command), last launched at \(pretty($0.terminatedAtDate))")
+			os_log("Run %{public}s, last launched at %{public}s", type: .info, $0.command.command, pretty($0.terminatedAtDate))
 			$0.launch()
 		}
 
@@ -416,12 +399,12 @@ class AppDelegate: NSObject {
 
 	func loadCommands(_ url: URL, cache: [String: String]) {
 		guard let dict = NSDictionary(contentsOf: url) as? [String: AnyObject] else {
-			log("Unable to load '\(pretty(url))'", level: .error)
+			os_log("Unable to load '%{public}s'", type: .error, pretty(url))
 			return
 		}
 
 		guard let array = dict["commands"] as? [[String: AnyObject]] else {
-			log("No commands array found in '\(pretty(url))'", level: .error)
+			os_log("No commands array found in '%{public}s'", type: .error, pretty(url))
 			return
 		}
 
@@ -445,7 +428,7 @@ class AppDelegate: NSObject {
 			}
 
 			guard let command = plist["command"] as? String, let frame = plist["frame"] as? String else {
-				log("No command or frame found for item: \(plist)", level: .warning)
+				os_log("No command or frame found for item: %{public}s", plist)
 				return nil
 			}
 
@@ -577,29 +560,29 @@ class AppDelegate: NSObject {
 	}
 
 	@objc func applicationWillTerminate(_ notification: Notification) {
-		log("### Will Terminate ### ")
+		os_log("### Will Terminate ###", type: .info)
 
 		do {
 			let plist = [ "cache": self.cache() ]
 			let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .binary, options: 0)
 			try? data.write(to: cacheURL, options: [.atomic])
 		} catch let error as NSError {
-			log("Error writing property list: \(error.localizedDescription)", level: .error)
+			os_log("Error writing property list: %{public}s", type: .error, error.localizedDescription)
 		}
 	}
 
 	@objc func applicationDidChangeScreenParameters(_ notification: Notification) {
-		log("### New Screen Size ###")
+		os_log("### New Screen Size ###", type: .info)
 		updateFrames()
 	}
 
 	@objc func workspaceWillSleepNotification(_ notification: Notification) {
-		log("### Will Sleep ###")
+		os_log("### Will Sleep ###", type: .info)
 		records.forEach { $0.terminate() }
 	}
 
 	@objc func workspaceDidWakeNotification(_ notification: Notification) {
-		log("### Did Wake ###")
+		os_log("### Did Wake ###", type: .info)
 		records.filter { $0.needsToLaunch }.forEach { $0.outputStatus = .outdated }
 		tick()
 	}
@@ -619,7 +602,6 @@ class CLI {
 	init() {
 		let longopts = [
 			option("f", "force",   no_argument),
-			option("v", "verbose", no_argument),
 			option(nil, "version", no_argument),
 			option(nil, nil,       0          )
 		]
@@ -632,8 +614,6 @@ class CLI {
 				switch option {
 				case "force":
 					force = true
-				case "verbose":
-					LogLevel.currentLevel = .notice
 				case "version":
 					print("\(appName) \(appVersion) (\(appDate))")
 					exit(EX_OK)
